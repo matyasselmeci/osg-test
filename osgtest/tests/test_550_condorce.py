@@ -7,6 +7,7 @@ try:
     from urllib2 import urlopen
 except ImportError:
     from urllib.request import urlopen
+import json
 
 import osgtest.library.core as core
 import osgtest.library.files as files
@@ -132,3 +133,20 @@ class TestCondorCE(osgunittest.OSGTestCase):
     def test_08_config_val(self):
         command = ('condor_ce_config_val', '-dump')
         core.check_system(command, 'condor_ce_config_val as non-root', user=True)
+
+    def test_09_ceview_agis_compat(self):
+        self.general_requirements()
+        self.skip_bad_unless(core.config['condor-ce.view-listening'], "CEView required")
+        view_url = "http://%s:%s/json/agis-compat" % (core.get_hostname(), core.config["condor-ce.view-port"])
+        try:
+            data = json.load(urlopen(view_url))
+        except EnvironmentError as err:
+            self.fail("Failed to download CEView data at %s: %s" % (view_url, err))
+        except Exception as err:
+            self.fail("Error parsing CEView data at %s: %s" % (view_url, err))
+        if "failed_ces" not in data:
+            core.log_message("json data: %s" % json.dumps(data))
+            self.fail("failed_ces missing from CEView data - see log for dump")
+        if len(data["failed_ces"]) > 0:
+            core.log_message("json data: %s" % json.dumps(data))
+            self.fail("some failed_ces - see log for dump")
