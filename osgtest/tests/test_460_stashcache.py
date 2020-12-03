@@ -23,14 +23,11 @@ def getcfg(key):
 class TestStashCache(OSGTestCase):
     # testfiles with random contents
     testfiles = [
-        ("testfile%d" % x, str(random.random()) + "\n")
+        ("testfile%d" % x, str(random.randint(1000000, 9999999)) + "\n")
         for x in range(4)
     ]
 
     def assertCached(self, name, contents, auth=False):
-        OriginExport = getcfg("OriginExport")
-        if auth:
-            OriginExport = getcfg("OriginAuthExport")
         fpath = os.path.join(getcfg("CacheRootdir"), getcfg("OriginExport").lstrip("/"), name)
         self.assertTrue(os.path.exists(fpath),
                         name + " not cached")
