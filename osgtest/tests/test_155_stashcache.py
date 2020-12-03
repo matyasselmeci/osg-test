@@ -78,6 +78,24 @@ else if named stash-origin
 fi
 """
 
+
+POST_CFG_PATH = "/etc/xrootd/config.d/99-post.conf"
+POST_CFG_CONTENTS = """\
+# Standard logging
+xrootd.trace emsg login stall redirect
+pfc.trace info
+# Uncomment this for debugging but comment them back once done
+ofs.trace all
+xrd.trace all
+cms.trace all
+http.trace all
+
+# Enable some debugging from the embedded client in the proxy
+# server. For more debugging change to 3
+# 
+pss.setopt DebugLevel 1
+"""
+
 CACHE_AUTHFILE_PATH = PARAMS["StashCacheAuthfile"]
 # 
 # The hash of the vdttest user DN
@@ -185,6 +203,7 @@ class TestStartStashCache(OSGTestCase):
         for path, contents in [
             (PARAMS_CFG_PATH, PARAMS_CFG_CONTENTS),
             (PRE_CFG_PATH, PRE_CFG_CONTENTS),
+            (POST_CFG_PATH, POST_CFG_CONTENTS),
             (ORIGIN_AUTHFILE_PATH, ORIGIN_AUTHFILE_CONTENTS),
             (ORIGIN_PUBLIC_AUTHFILE_PATH, ORIGIN_PUBLIC_AUTHFILE_CONTENTS),
             (CACHE_AUTHFILE_PATH, CACHE_AUTHFILE_CONTENTS),
