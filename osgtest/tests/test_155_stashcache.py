@@ -161,6 +161,9 @@ class TestStartStashCache(OSGTestCase):
         if core.rpm_is_installed("xcache"):
             self.skip_ok_if(core.PackageVersion("xcache") < "1.0.2", "needs xcache 1.0.2+")
 
+    def test_00_dump_pre_mod_config(self):
+        core.system("cat /etc/xrootd/config.d/*", shell=True)
+
     def test_01_configure(self):
         if core.PackageVersion('stash-cache') >= '1.1.0':
             caching_plugin_cfg_path = "/etc/xrootd/config.d/40-stash-cache-plugin.cfg"
@@ -221,6 +224,9 @@ class TestStartStashCache(OSGTestCase):
         core.config['certs.xrootdkey'] = '/etc/grid-security/xrd/xrdkey.pem'
         core.install_cert('certs.xrootdcert', 'certs.hostcert', 'xrootd', 0o644)
         core.install_cert('certs.xrootdkey', 'certs.hostkey', 'xrootd', 0o400)
+
+    def test_01a_dump_post_mod_config(self):
+        core.system("cat /etc/xrootd/config.d/*", shell=True)
 
     def test_02_start_stash_origin(self):
         start_xrootd("stash-origin")
