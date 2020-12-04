@@ -81,19 +81,14 @@ fi
 
 POST_CFG_PATH = "/etc/xrootd/config.d/99-post.conf"
 POST_CFG_CONTENTS = """\
-# Standard logging
-xrootd.trace emsg login stall redirect
-pfc.trace info
-# Uncomment this for debugging but comment them back once done
+# ALL THE LOGGING
+xrootd.trace all
+pfc.trace all
 ofs.trace all
 xrd.trace all
 cms.trace all
 http.trace all
-
-# Enable some debugging from the embedded client in the proxy
-# server. For more debugging change to 3
-# 
-pss.setopt DebugLevel 1
+pss.setopt DebugLevel 3
 """
 
 CACHE_AUTHFILE_PATH = PARAMS["StashCacheAuthfile"]
@@ -148,7 +143,7 @@ def start_xrootd(instance):
             service.check_start(svc, min_up_time=3)
         except Exception:
             core.system("cconfig /etc/xrootd/xrootd-%s.cfg" % instance, shell=True)
-            core.system("tail -n 75 /var/log/xrootd/%s/xrootd.log" % instance, shell=True)
+            core.system("tail -n 125 /var/log/xrootd/%s/xrootd.log" % instance, shell=True)
             raise
 
 
@@ -159,7 +154,7 @@ def start_cmsd(instance):
             service.check_start(svc, min_up_time=5)
         except Exception:
             core.system("cconfig /etc/xrootd/xrootd-%s.cfg" % instance, shell=True)
-            core.system("tail -n 75 /var/log/xrootd/%s/cmsd.log" % instance, shell=True)
+            core.system("tail -n 125 /var/log/xrootd/%s/cmsd.log" % instance, shell=True)
             raise
 
 
