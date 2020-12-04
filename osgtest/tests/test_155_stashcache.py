@@ -227,7 +227,7 @@ class TestStartStashCache(OSGTestCase):
 
     def test_01b_tar_up_config(self):
         self.skip_ok_unless(os.path.exists("/mnt/user/output"), "no output dir")
-        core.system("tar czf /mnt/user/output/etc_xrootd.tar.gz /etc/xrootd /run/stash-*")
+        core.system("tar czf /mnt/user/output/etc_xrootd.tar.gz /etc/xrootd /run/stash-*", shell=True)
 
     def test_02_start_stash_origin(self):
         # Note: starting cmsd will fail because we don't have a cluster manager (i.e. redirector); that's OK.
