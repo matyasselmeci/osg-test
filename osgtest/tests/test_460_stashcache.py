@@ -60,6 +60,9 @@ class TestStashCache(OSGTestCase):
                         contents, backup=False, chmod=0o644,
                         chown=(xrootd_user.pw_uid, xrootd_user.pw_gid))
 
+    def test_01a_dump_origin_rootdir(self):
+        core.system(["find", getcfg("OriginRootdir"), "-ls"])
+
     def test_02_xrootd_fetch_from_origin(self):
         name, contents = self.testfiles[0]
         path = os.path.join(getcfg("OriginExport"), name)
