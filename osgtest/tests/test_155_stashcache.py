@@ -148,17 +148,6 @@ def start_xrootd(instance):
             raise
 
 
-def start_cmsd(instance):
-    svc = "cmsd@%s" % instance
-    if not service.is_running(svc):
-        try:
-            service.check_start(svc, min_up_time=5)
-        except Exception:
-            core.system("cconfig -c /etc/xrootd/xrootd-%s.cfg" % instance, shell=True)
-            core.system("tail -n 125 /var/log/xrootd/%s/cmsd.log" % instance, shell=True)
-            raise
-
-
 class TestStartStashCache(OSGTestCase):
     @core.elrelease(7,8)
     def setUp(self):
@@ -237,14 +226,12 @@ class TestStartStashCache(OSGTestCase):
         core.system("cat /etc/xrootd/config.d/*", shell=True)
 
     def test_02_start_stash_origin(self):
+        # Note: starting cmsd will fail because we don't have a cluster manager (i.e. redirector); that's OK.
         start_xrootd("stash-origin")
-        # technically xrootd should start this but in case cmsd crashes, we want its log
-        start_cmsd("stash-origin")
 
     def test_03_start_stash_origin_auth(self):
+        # Note: starting cmsd will fail because we don't have a cluster manager (i.e. redirector); that's OK.
         start_xrootd("stash-origin-auth")
-        # technically xrootd should start this but in case cmsd crashes, we want its log
-        start_cmsd("stash-origin")
 
     def test_04_start_stash_cache(self):
         start_xrootd("stash-cache")
