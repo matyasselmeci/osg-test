@@ -144,7 +144,7 @@ def start_xrootd(instance):
         try:
             service.check_start(svc, min_up_time=5)
         except Exception:
-            core.system("cconfig -c /etc/xrootd/xrootd-%s.cfg" % instance, shell=True)
+            core.system("cconfig -c /etc/xrootd/xrootd-%s.cfg -n %s -x xrootd" % (instance, instance), shell=True)
             core.system("tail -n 125 /var/log/xrootd/%s/xrootd.log" % instance, shell=True)
             raise
 
