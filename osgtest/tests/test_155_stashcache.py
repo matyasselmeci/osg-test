@@ -27,6 +27,8 @@ PARAMS = dict(
     StashOriginPublicAuthfile = "/etc/xrootd/Authfile-origin-public",
     StashCacheAuthfile        = "/etc/xrootd/Authfile-cache",
     StashCachePublicAuthfile  = "/etc/xrootd/Authfile-cache-public",
+    StashOriginSciTokensConf  = "/etc/xrootd/scitokens.conf",
+    StashCacheSciTokensConf   = "/etc/xrootd/scitokens.conf",
     OriginResourcename        = "OSG_TEST_ORIGIN",
     CacheResourcename         = "OSG_TEST_CACHE",
 )
@@ -120,8 +122,7 @@ CACHES_JSON_CONTENTS = """\
 ]
 """
 
-ORIGIN_SCITOKENS_CONF_PATH = "/run/stash-origin-auth/scitokens.conf"
-CACHE_SCITOKENS_CONF_PATH = "/run/stash-cache-auth/scitokens.conf"
+SCITOKENS_CONF_PATH = PARAMS["StashCacheSciTokensConf"]  # same as StashOriginSciTokensConf
 SCITOKENS_CONF_CONTENTS = """\
 [Issuer /unregistered]
 issuer = https://scitokens.org/unregistered
@@ -179,8 +180,7 @@ class TestStartStashCache(OSGTestCase):
                   os.path.join(PARAMS["OriginRootdir"], PARAMS["OriginAuthExport"].lstrip("/")),
                   os.path.join(PARAMS["CacheRootdir"], PARAMS["OriginDummyExport"].lstrip("/")),
                   os.path.dirname(CACHES_JSON_PATH),
-                  os.path.dirname(CACHE_SCITOKENS_CONF_PATH),
-                  os.path.dirname(ORIGIN_SCITOKENS_CONF_PATH),
+                  os.path.dirname(SCITOKENS_CONF_PATH),
                   ]:
             files.safe_makedirs(d)
 
@@ -209,8 +209,7 @@ class TestStartStashCache(OSGTestCase):
             (CACHE_AUTHFILE_PATH, CACHE_AUTHFILE_CONTENTS),
             (CACHE_PUBLIC_AUTHFILE_PATH, CACHE_PUBLIC_AUTHFILE_CONTENTS),
             (CACHES_JSON_PATH, CACHES_JSON_CONTENTS),
-            (CACHE_SCITOKENS_CONF_PATH, SCITOKENS_CONF_CONTENTS),
-            (ORIGIN_SCITOKENS_CONF_PATH, SCITOKENS_CONF_CONTENTS),
+            (SCITOKENS_CONF_PATH, SCITOKENS_CONF_CONTENTS),
         ]:
             files.write(path, contents, owner=NAMESPACE, chmod=0o644)
             filelist.append(path)
@@ -227,7 +226,7 @@ class TestStartStashCache(OSGTestCase):
 
     def test_01b_tar_up_config(self):
         self.skip_ok_unless(os.path.exists("/mnt/user/output"), "no output dir")
-        core.system("tar czf /mnt/user/output/etc_xrootd.tar.gz /etc/xrootd /run/stash-*", shell=True)
+        core.system("tar czf /mnt/user/output/etc_xrootd.tar.gz /etc/xrootd", shell=True)
 
     def test_02_start_stash_origin(self):
         # Note: starting cmsd will fail because we don't have a cluster manager (i.e. redirector); that's OK.
