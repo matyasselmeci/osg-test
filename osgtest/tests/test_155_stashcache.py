@@ -190,13 +190,13 @@ class TestStartStashCache(OSGTestCase):
         setcfg("filelist", filelist)
         # Modify filelist in-place with .append so changes get into core.config too
 
-        # Delete the lines we can't override
+        # Comment out the lines we can't override
         for path, regexp in [
             (XROOTD_ORIGIN_CFG_PATH, "^\s*all.manager.+$"),
             (http_cfg_path, "^\s*xrd.protocol.+$"),
             (caching_plugin_cfg_path, "^\s*(ofs.osslib|pss.cachelib|pss.origin).+$"),
         ]:
-            files.replace_regexpr(path, regexp, "", owner=NAMESPACE)
+            files.replace_regexpr(path, regexp, r"#\g<0>", owner=NAMESPACE)
             filelist.append(path)
 
         # Write our new files
