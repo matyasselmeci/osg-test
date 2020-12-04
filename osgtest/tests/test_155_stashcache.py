@@ -83,7 +83,8 @@ POST_CFG_PATH = "/etc/xrootd/config.d/99-post.conf"
 POST_CFG_CONTENTS = """\
 # ALL THE LOGGING
 xrootd.trace all
-pfc.trace all
+pfc.trace debug
+pss.trace all
 ofs.trace all
 xrd.trace all
 cms.trace all
