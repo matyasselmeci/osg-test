@@ -92,9 +92,6 @@ xrd.trace all
 cms.trace all
 http.trace all
 pss.setopt DebugLevel 5
-
-# DEBUG: disable checksumming
-pfc.cschk none
 """
 
 CACHE_AUTHFILE_PATH = PARAMS["StashCacheAuthfile"]
