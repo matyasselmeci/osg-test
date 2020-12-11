@@ -201,12 +201,15 @@ class TestStartStashCache(OSGTestCase):
 
 
         # Make SciTokens auth plugin 'stack' on top of existing plugins (XXX submit upstream)
-        stash_origin_authz_cfg = "/etc/xrootd/config.d/49-stash-origin-authz.cfg"
-        files.replace_regexpr(stash_origin_authz_cfg,
-                              r"^\s*ofs.authlib\s+libXrdAccSciTokens.so",
-                              r"ofs.authlib ++ libXrdAccSciTokens.so",
-                              owner=NAMESPACE)
-        filelist.append(stash_origin_authz_cfg)
+        for path in [
+            "/etc/xrootd/config.d/50-stash-cache-authz.cfg",
+            "/etc/xrootd/config.d/50-stash-origin-authz.cfg",
+        ]:
+            files.replace_regexpr(path,
+                                  r"^\s*ofs.authlib\s+libXrdAccSciTokens.so",
+                                  r"ofs.authlib ++ libXrdAccSciTokens.so",
+                                  owner=NAMESPACE)
+            filelist.append(path)
 
 
         # Write our new files
