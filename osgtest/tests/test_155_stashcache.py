@@ -201,7 +201,7 @@ class TestStartStashCache(OSGTestCase):
 
         # Get a symbol dump
         if core.PackageVersion("xrootd-scitokens") >= "5.1":
-            core.system("strings /usr/lib64/libXrdAccScitokens*.so | grep XrdAcc | sort", shell=True)
+            core.system("strings /usr/lib64/libXrdAccSciTokens*.so | grep XrdAcc | sort", shell=True)
 
         # Make SciTokens auth plugin 'stack' on top of existing plugins (XXX submit upstream)
         for path in [
