@@ -29,6 +29,7 @@ class TestInstall(osgunittest.OSGTestCase):
         core.state['install.transaction_ids'] = set()
         fail_msg = ''
         pkg_repo_dict = OrderedDict((x, core.options.extrarepos) for x in core.options.packages)
+        pkg_repo_dict.setdefault("binutils", [])  # for strings(1)
 
         # HACK: Install x509-scitokens-issuer-client out of development (SOFTWARE-3649)
         x509_scitokens_issuer_packages = ['xrootd-scitokens', 'osg-tested-internal']
