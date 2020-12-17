@@ -203,16 +203,16 @@ class TestStartStashCache(OSGTestCase):
         if core.PackageVersion("xrootd-scitokens") >= "5.1":
             core.system("/usr/bin/strings /usr/lib64/libXrdAccSciTokens*.so | grep XrdAcc | sort", shell=True)
 
-        # XXX Try it without scitokens?
-        for path in [
-            "/etc/xrootd/config.d/50-stash-cache-authz.cfg",
-            "/etc/xrootd/config.d/50-stash-origin-authz.cfg",
-        ]:
-            files.replace_regexpr(path,
-                                  r"^\s*ofs.authlib\s+libXrdAccSciTokens.so",
-                                  r"# ofs.authlib libXrdAccSciTokens.so",
-                                  owner=NAMESPACE)
-            filelist.append(path)
+        # # Make SciTokens auth plugin 'stack' on top of existing plugins (XXX submit upstream)
+        # for path in [
+        #     "/etc/xrootd/config.d/50-stash-cache-authz.cfg",
+        #     "/etc/xrootd/config.d/50-stash-origin-authz.cfg",
+        # ]:
+        #     files.replace_regexpr(path,
+        #                           r"^\s*ofs.authlib\s+libXrdAccSciTokens.so",
+        #                           r"ofs.authlib ++ libXrdAccSciTokens.so",
+        #                           owner=NAMESPACE)
+        #     filelist.append(path)
 
 
         # Write our new files
