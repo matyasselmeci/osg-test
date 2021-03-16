@@ -126,6 +126,7 @@ AUTH_SSL_CLIENT_CAFILE =
         core.config['condor-ce.collectorlog'] = condor.ce_config_val('COLLECTOR_LOG')
 
         if service.is_running('condor-ce'):
+            core.check_system(["/usr/bin/condor_ce_q"], "condor_ce_q failed")
             core.state['condor-ce.schedd-ready'] = True
             self.skip_ok('already running')
 
@@ -134,4 +135,5 @@ AUTH_SSL_CLIENT_CAFILE =
         service.check_start('condor-ce', timeout=20)
 
         if condor.wait_for_daemon(core.config['condor-ce.collectorlog'], stat, 'Schedd', 300.0):
+            core.check_system(["/usr/bin/condor_ce_q"], "condor_ce_q failed")
             core.state['condor-ce.schedd-ready'] = True

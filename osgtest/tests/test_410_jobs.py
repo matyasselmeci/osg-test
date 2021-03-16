@@ -40,6 +40,7 @@ class TestRunJobs(osgunittest.OSGTestCase):
         core.skip_ok_unless_installed('torque-mom', 'torque-server', 'torque-scheduler', by_dependency=True)
         self.skip_bad_unless(core.state['jobs.env-set'], 'job environment not set')
         self.skip_bad_unless(service.is_running('condor'), 'condor not running')
+        self.skip_bad_if(core.system(["/usr/bin/condor_q"])[0] != 0, 'condor_q failed')
         self.skip_bad_unless(service.is_running('pbs_server'), 'pbs not running')
 
         command = ('condor_run', '-u', 'grid', '-a', 'grid_resource=pbs', '-a', 'periodic_remove=JobStatus==5',
@@ -56,7 +57,9 @@ class TestRunJobs(osgunittest.OSGTestCase):
         core.skip_ok_unless_installed('htcondor-ce', 'htcondor-ce-client', 'htcondor-ce-condor', 'condor')
 
         self.skip_bad_unless(service.is_running('condor-ce'), 'ce not running')
+        self.skip_bad_if(core.system(["/usr/bin/condor_ce_q"])[0] != 0, 'condor_ce_q failed')
         self.skip_bad_unless(service.is_running('condor'), 'condor not running')
+        self.skip_bad_if(core.system(["/usr/bin/condor_q"])[0] != 0, 'condor_q failed')
         self.skip_bad_unless(core.state['jobs.env-set'], 'job environment not set')
         self.skip_bad_unless(core.state['proxy.valid'] or core.state['token.condor_write_created'],
                              'requires a scitoken or a proxy')
