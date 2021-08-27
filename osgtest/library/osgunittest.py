@@ -9,22 +9,17 @@ standard Python unittest library have been made:
 # I'm following the conventions unittest set.
 # pylint: disable=R0201,C0103
 import re
+import contextlib
 import sys
-import unittest
 import time
+import unittest
+from unittest.util import safe_repr
+import warnings
 
 from osgtest.library import service
 
-# Copied from unittest.util, Python 3.6
-_MAX_LENGTH = 80
-def safe_repr(obj, short=False):
-    try:
-        result = repr(obj)
-    except Exception:
-        result = object.__repr__(obj)
-    if not short or len(result) < _MAX_LENGTH:
-        return result
-    return result[:_MAX_LENGTH] + ' [truncated]...'
+# Copied from unittest.case
+_subtest_msg_sentinel = object()
 
 
 # Define the classes we need to handle the two new types of test results: ok
@@ -68,25 +63,8 @@ class OSGTestCase(unittest.TestCase):
 
     See documentation for unittest.TestCase for usage.
     """
-
-    # Needed to copy this from unittest so the private variable would work.
-    def __init__(self, methodName='runTest'):
-        """
-        Create an instance of the class that will use the named test
-        method when executed. Raises a ValueError if the instance does
-        not have a method with the specified name.
-
-        Usually, the user does not have to call this directly, but it will
-        be called by unittest's test discovery functions instead.
-        """
-        unittest.TestCase.__init__(self, methodName)
-        # in py2.4, testMethodName is a private variable, which means it has
-        # a mangled version. Make a copy so methods we override can use it.
-
-        # pylint:disable=E1101
-        # Quiet error about missing member--I'm checking explicitly.
-        if hasattr(self, '_TestCase__testMethodName'):
-            self._testMethodName = self._TestCase__testMethodName
+    def defaultTestResult(self) -> "OSGTestResult":
+        return OSGTestResult()
 
     def skip_ok(self, message=None):
         "Skip (ok) unconditionally"
@@ -165,100 +143,124 @@ class OSGTestCase(unittest.TestCase):
         BadSkipException is counted as an Error or a Failure depending on when
         it occurs.
         """
-        exit_on_fail = False
-        if 'exit_on_fail' in kwargs:
-            exit_on_fail = kwargs['exit_on_fail']
-
+        orig_result = result
         if result is None:
             result = self.defaultTestResult()
+            startTestRun = getattr(result, 'startTestRun', None)
+            if startTestRun is not None:
+                startTestRun()
+
         result.startTest(self)
         testMethod = getattr(self, self._testMethodName)
-        canSkip = hasattr(result, 'addOkSkip') and hasattr(result, 'addBadSkip')
+        isOSGTestResult = isinstance(result, OSGTestResult)
+        if (getattr(self.__class__, "__unittest_skip__", False) or
+            getattr(testMethod, "__unittest_skip__", False)):
+            # If the class or method was skipped.
+            try:
+                skip_why = (getattr(self.__class__, '__unittest_skip_why__', '')
+                            or getattr(testMethod, '__unittest_skip_why__', ''))
+                self._addSkip(result, self, skip_why)
+            finally:
+                result.stopTest(self)
+            return
+        expecting_failure_method = getattr(testMethod,
+                                           "__unittest_expecting_failure__", False)
+        expecting_failure_class = getattr(self,
+                                          "__unittest_expecting_failure__", False)
+        expecting_failure = expecting_failure_class or expecting_failure_method
+        outcome = _Outcome(result)
+
         try:
-            try:
+            self._outcome = outcome
+
+            with outcome.testPartExecutor(self):
                 self.setUp()
-            # These are new. setUp() is a perfectly valid place to skip tests.
-            except OkSkipException:
-                if canSkip:
-                    result.addOkSkip(self, sys.exc_info())
-                else:
-                    pass
-                return
-            except ExcludedException:
-                if canSkip:
-                    result.addExclude(self, sys.exc_info())
-                else:
-                    pass
-                return
-            except BadSkipException:
-                if canSkip:
-                    result.addBadSkip(self, sys.exc_info())
-                else:
-                    result.addError(self, sys.exc_info())
-                if exit_on_fail:
-                    result.stop()
-                return
-            except KeyboardInterrupt:
-                raise
-            except:
-                result.addError(self, sys.exc_info())
-                if exit_on_fail:
-                    result.stop()
-                return
+            if outcome.success:
+                outcome.expecting_failure = expecting_failure
+                with outcome.testPartExecutor(self, isTest=True):
+                    testMethod()
+                outcome.expecting_failure = False
+                with outcome.testPartExecutor(self):
+                    self.tearDown()
 
-            ok = False
-            try:
-                testMethod()
-                ok = True
-            # Add support for the new exception classes.  These need to be
-            # _before_ self.failureException, since self.failureException is
-            # another name for AssertionError, and OkSkipException and
-            # BadSkipException inherit from AssertionError.
-            except OkSkipException:
-                if canSkip:
-                    result.addOkSkip(self, sys.exc_info())
+            self.doCleanups()
+            if isOSGTestResult:
+                for test, reason in outcome.okSkipped:
+                    result.addOkSkip(test, reason)
+                for test, reason in outcome.badSkipped:
+                    result.addBadSkip(test, reason)
+                for test, reason in outcome.excluded:
+                    result.addExclude(test, reason)
+                for test, reason in outcome.timedOut:
+                    result.addTimeout(test, reason)
+            self._feedErrorsToResult(result, outcome.errors)
+            if outcome.success:
+                if expecting_failure:
+                    if outcome.expectedFailure:
+                        self._addExpectedFailure(result, outcome.expectedFailure)
+                    else:
+                        self._addUnexpectedSuccess(result)
                 else:
-                    pass
-            except ExcludedException:
-                if canSkip:
-                    result.addExclude(self, sys.exc_info())
-                else:
-                    pass
-            except BadSkipException:
-                if canSkip:
-                    result.addBadSkip(self, sys.exc_info())
-                else:
-                    result.addFailure(self, sys.exc_info())
-                if exit_on_fail:
-                    result.stop()
-            except TimeoutException:
-                result.addTimeout(self, sys.exc_info())
-                if exit_on_fail:
-                    result.stop()
-            except self.failureException:
-                result.addFailure(self, sys.exc_info())
-                if exit_on_fail:
-                    result.stop()
-            except KeyboardInterrupt:
-                raise
-            except:
-                result.addError(self, sys.exc_info())
-                if exit_on_fail:
-                    result.stop()
-
-            try:
-                self.tearDown()
-            except KeyboardInterrupt:
-                raise
-            except:
-                result.addError(self, sys.exc_info())
-                if exit_on_fail:
-                    result.stop()
-                ok = False
-            if ok:
-                result.addSuccess(self)
+                    result.addSuccess(self)
+            return result
         finally:
             result.stopTest(self)
+            if orig_result is None:
+                stopTestRun = getattr(result, 'stopTestRun', None)
+                if stopTestRun is not None:
+                    stopTestRun()
+
+            # explicitly break reference cycles:
+            # outcome.errors -> frame -> outcome -> outcome.errors
+            # outcome.expectedFailure -> frame -> outcome -> outcome.expectedFailure
+            outcome.errors.clear()
+            outcome.expectedFailure = None
+
+            # clear the outcome, no more needed
+            self._outcome = None
+
+    #
+    #
+    # Private methods copied from parent
+    #
+    #
+
+    def _feedErrorsToResult(self, result, errors):
+        for test, exc_info in errors:
+            if isinstance(test, _SubTest):
+                result.addSubTest(test.test_case, test, exc_info)
+            elif exc_info is not None:
+                if issubclass(exc_info[0], self.failureException):
+                    result.addFailure(test, exc_info)
+                else:
+                    result.addError(test, exc_info)
+
+    def _addExpectedFailure(self, result, exc_info):
+        try:
+            addExpectedFailure = result.addExpectedFailure
+        except AttributeError:
+            warnings.warn("TestResult has no addExpectedFailure method, reporting as passes",
+                          RuntimeWarning)
+            result.addSuccess(self)
+        else:
+            addExpectedFailure(self, exc_info)
+
+    def _addUnexpectedSuccess(self, result):
+        try:
+            addUnexpectedSuccess = result.addUnexpectedSuccess
+        except AttributeError:
+            warnings.warn("TestResult has no addUnexpectedSuccess method, reporting as failure",
+                          RuntimeWarning)
+            # We need to pass an actual exception and traceback to addFailure,
+            # otherwise the legacy result can choke.
+            try:
+                raise _UnexpectedSuccess from None
+            except _UnexpectedSuccess:
+                result.addFailure(self, sys.exc_info())
+        else:
+            addUnexpectedSuccess(self)
+
+
 
 
 class OSGTestResult(unittest.TestResult):
@@ -514,3 +516,109 @@ class OSGTestLoader(unittest.TestLoader):
     when loading tests
     """
     suiteClass = OSGTestSuite
+
+
+#
+#
+# Private classes copied/overridden from unittest.case
+#
+#
+class _ShouldStop(Exception):
+    """
+    The test should stop.
+    """
+
+class _UnexpectedSuccess(Exception):
+    """
+    The test was supposed to fail, but it didn't!
+    """
+
+
+class _Outcome(object):
+    # Test outcome
+    # Modified to support badSkipped, excluded, and timedOut.
+    # skips are treated like okSkip
+    def __init__(self, result=None):
+        self.expecting_failure = False
+        self.result = result
+        self.result_supports_subtests = hasattr(result, "addSubTest")
+        self.success = True
+        self.okSkipped = []
+        self.badSkipped = []
+        self.excluded = []
+        self.timedOut = []
+        self.expectedFailure = None
+        self.errors = []
+
+    @contextlib.contextmanager
+    def testPartExecutor(self, test_case, isTest=False):
+        old_success = self.success
+        self.success = True
+        try:
+            yield
+        except KeyboardInterrupt:
+            raise
+        except (unittest.case.SkipTest, OkSkipException) as e:
+            self.success = False
+            self.okSkipped.append((test_case, str(e)))
+        except BadSkipException as e:
+            self.success = False
+            self.badSkipped.append((test_case, str(e)))
+        except ExcludedException as e:
+            self.excluded.append((test_case, str(e)))
+        except TimeoutException as e:
+            self.success = False
+            self.timedOut.append((test_case, str(e)))
+        except _ShouldStop:
+            pass
+        except:
+            exc_info = sys.exc_info()
+            if self.expecting_failure:
+                self.expectedFailure = exc_info
+            else:
+                self.success = False
+                self.errors.append((test_case, exc_info))
+            # explicitly break a reference cycle:
+            # exc_info -> frame -> exc_info
+            exc_info = None
+        else:
+            if self.result_supports_subtests and self.success:
+                self.errors.append((test_case, None))
+        finally:
+            self.success = self.success and old_success
+
+
+class _SubTest(unittest.TestCase):
+
+    def __init__(self, test_case, message, params):
+        super().__init__()
+        self._message = message
+        self.test_case = test_case
+        self.params = params
+        self.failureException = test_case.failureException
+
+    def runTest(self):
+        raise NotImplementedError("subtests cannot be run directly")
+
+    def _subDescription(self):
+        parts = []
+        if self._message is not _subtest_msg_sentinel:
+            parts.append("[{}]".format(self._message))
+        if self.params:
+            params_desc = ', '.join(
+                "{}={!r}".format(k, v)
+                for (k, v) in sorted(self.params.items()))
+            parts.append("({})".format(params_desc))
+        return " ".join(parts) or '(<subtest>)'
+
+    def id(self):
+        return "{} {}".format(self.test_case.id(), self._subDescription())
+
+    def shortDescription(self):
+        """Returns a one-line description of the subtest, or None if no
+        description has been provided.
+        """
+        return self.test_case.shortDescription()
+
+    def __str__(self):
+        return "{} {}".format(self.test_case, self._subDescription())
