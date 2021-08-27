@@ -13,6 +13,9 @@ import contextlib
 import sys
 import time
 import unittest
+from typing import TextIO, List, Tuple, Iterable
+from unittest import TestCase
+from unittest.runner import TextTestResult
 from unittest.util import safe_repr
 import warnings
 
@@ -55,7 +58,7 @@ class TimeoutException(AssertionError):
     pass
 
 
-class OSGTestCase(unittest.TestCase):
+class OSGTestCase(TestCase):
     """
     A class whose instances are single test cases.
     An extension of unittest.TestCase with support for the 'OkSkip' and
@@ -261,8 +264,6 @@ class OSGTestCase(unittest.TestCase):
             addUnexpectedSuccess(self)
 
 
-
-
 class OSGTestResult(unittest.TestResult):
     """
     Extended holder of test result information.
@@ -335,60 +336,21 @@ class OSGTestResult(unittest.TestResult):
             len(self.timeouts))
 
 
-class OSGTextTestResult(OSGTestResult):
+class OSGTextTestResult(OSGTestResult, TextTestResult):
     """
     A test result that formats results and prints them to a stream.
 
     Used by OSGTextTestRunner.
-    This is copied from unittest._TextTestResult instead of subclassing it
-    since that's a private interface (and is not called the same thing in py2.6).
 
     The user should not have to instantiate this directly; an instance will be
     created by OSGTextTestRunner.
     """
-
-    separator1 = '=' * 70
-    separator2 = '-' * 70
-
-    def __init__(self, stream, descriptions, verbosity):
-        OSGTestResult.__init__(self)
-        self.stream = stream
-        self.showAll = verbosity > 1
-        self.dots = verbosity == 1
-        self.descriptions = descriptions
-
-    def getDescription(self, test):
-        if self.descriptions:
-            return test.shortDescription() or str(test)
-        else:
-            return str(test)
-
-    def startTest(self, test):
-        OSGTestResult.startTest(self, test)
-        if self.showAll:
-            self.stream.write(self.getDescription(test))
-            self.stream.write(" ... ")
-
-    def addSuccess(self, test):
-        OSGTestResult.addSuccess(self, test)
-        if self.showAll:
-            self.stream.writeln("ok")
-        elif self.dots:
-            self.stream.write('.')
-
-    def addError(self, test, err):
-        OSGTestResult.addError(self, test, err)
-        if self.showAll:
-            self.stream.writeln("ERROR")
-        elif self.dots:
-            self.stream.write('E')
-
-    def addFailure(self, test, err):
-        OSGTestResult.addFailure(self, test, err)
-        if self.showAll:
-            self.stream.writeln("FAIL")
-        elif self.dots:
-            self.stream.write('F')
+    def __init__(self, stream=None, descriptions=None, verbosity=None):
+        super().__init__(stream, descriptions, verbosity)
+        self.timeouts = []
+        self.badSkips = []
+        self.okSkips = []
+        self.excludes = []
 
     def printErrors(self):
         """Print a list of errors, failures and skips to the stream."""
@@ -401,7 +363,7 @@ class OSGTextTestResult(OSGTestResult):
         self.printSkipList('OK SKIPS', self.okSkips)
         self.printSkipList('EXCLUDED', self.excludes)
 
-    def printErrorList(self, flavour, errors):
+    def printErrorList(self, flavour: str, errors: Iterable[Tuple[TestCase, str]]):
         """Print all of one flavor of error to the stream."""
         for test, err in errors:
             self.stream.writeln(self.separator1)
@@ -409,7 +371,7 @@ class OSGTextTestResult(OSGTestResult):
             self.stream.writeln(self.separator2)
             self.stream.writeln(str(err))
 
-    def printSkipList(self, flavour, skips):
+    def printSkipList(self, flavour: str, skips: Iterable[Tuple[TestCase, str]]):
         """Print all of one flavor of skip to the stream."""
         if not skips:
             return
@@ -427,6 +389,7 @@ class OSGTextTestResult(OSGTestResult):
             self.stream.writeln("okskip")
         elif self.dots:
             self.stream.write("s")
+            self.stream.flush()
 
     def addExclude(self, test, reason):
         OSGTestResult.addExclude(self, test, reason)
@@ -434,6 +397,7 @@ class OSGTextTestResult(OSGTestResult):
             self.stream.writeln("excluded")
         elif self.dots:
             self.stream.write("x")
+            self.stream.flush()
 
     def addBadSkip(self, test, reason):
         OSGTestResult.addBadSkip(self, test, reason)
@@ -441,21 +405,24 @@ class OSGTextTestResult(OSGTestResult):
             self.stream.writeln("BADSKIP")
         elif self.dots:
             self.stream.write("S")
+            self.stream.flush()
 
     def addTimeout(self, test, reason):
         OSGTestResult.addTimeout(self, test, reason)
         if self.showAll:
             self.stream.writeln("TIMEOUT")
         elif self.dots:
-            self.stream.write("F")
+            self.stream.write("T")
+            self.stream.flush()
 
 class OSGTextTestRunner(unittest.TextTestRunner):
     """Extended unittest.TextTestRunner with support for okSkips / badSkips / timeouts."""
+    resultclass = OSGTextTestResult
 
-    def _makeResult(self):
-        return OSGTextTestResult(self.stream, self.descriptions, self.verbosity)
+    def _makeResult(self) -> OSGTextTestResult:
+        return self.resultclass(self.stream, self.descriptions, self.verbosity)
 
-    def run(self, test, **kwargs):
+    def run(self, test):
         """
         Run an actual set of tests, time the run, collect and
         summarize the results.
@@ -464,38 +431,82 @@ class OSGTextTestRunner(unittest.TextTestRunner):
         displays okSkips, badSkips, and timeouts.
         """
         result = self._makeResult()
-        # ^ make 'result' here so we know its an OSGTextTestResult and not a
-        #   regular TextTestResult.
-        startTime = time.time()
-        test(result, **kwargs)
-        stopTime = time.time()
+        unittest.signals.registerResult(result)
+        result.failfast = self.failfast
+        result.buffer = self.buffer
+        result.tb_locals = self.tb_locals
+        with warnings.catch_warnings():
+            if self.warnings:
+                # if self.warnings is set, use it to filter all the warnings
+                warnings.simplefilter(self.warnings)
+                # if the filter is 'default' or 'always', special-case the
+                # warnings from the deprecated unittest methods to show them
+                # no more than once per module, because they can be fairly
+                # noisy.  The -Wd and -Wa flags can be used to bypass this
+                # only when self.warnings is None.
+                if self.warnings in ['default', 'always']:
+                    warnings.filterwarnings('module',
+                            category=DeprecationWarning,
+                            message=r'Please use assert\w+ instead.')
+            startTime = time.time()
+            startTestRun = getattr(result, 'startTestRun', None)
+            if startTestRun is not None:
+                startTestRun()
+            try:
+                test(result)
+            finally:
+                stopTestRun = getattr(result, 'stopTestRun', None)
+                if stopTestRun is not None:
+                    stopTestRun()
+            stopTime = time.time()
         timeTaken = stopTime - startTime
         result.printErrors()
-        self.stream.writeln(result.separator2)
+        if hasattr(result, 'separator2'):
+            self.stream.writeln(result.separator2)
         run = result.testsRun
         self.stream.writeln("Ran %d test%s in %.3fs" %
                             (run, run != 1 and "s" or "", timeTaken))
         self.stream.writeln()
+
+        expectedFails = unexpectedSuccesses = skipped = 0
+        try:
+            results = map(len, (result.expectedFailures,
+                                result.unexpectedSuccesses,
+                                result.okSkips,
+                                result.badSkips,
+                                result.timeouts))
+        except AttributeError:
+            pass
+        else:
+            expectedFails, unexpectedSuccesses, okSkipped, badSkipped, timeouts = results
+
+        infos = []
         if not result.wasSuccessful():
-            failed, errored, badSkipped, timeouts, okSkipped = map(len,
-                (result.failures, result.errors, result.badSkips, result.timeouts, result.okSkips))
-            counts = []
+            failed, errored, okSkipped, badSkipped, timeouts = map(len,
+                (result.failures, result.errors, result.okSkips, result.badSkips, result.timeouts))
             if failed:
-                counts.append("failures=%d" % failed)
+                infos.append("failures=%d" % failed)
             if errored:
-                counts.append("errors=%d" % errored)
+                infos.append("errors=%d" % errored)
             if badSkipped:
-                counts.append("badSkips=%d" % badSkipped)
+                infos.append("badSkips=%d" % badSkipped)
             if timeouts:
-                counts.append("timeouts=%d" % timeouts)
+                infos.append("timeouts=%d" % timeouts)
             if okSkipped:
-                counts.append("okSkips=%d" % okSkipped)
-            self.stream.writeln("FAILED (" + ", ".join(counts) + ")")
+                infos.append("okSkips=%d" % okSkipped)
         else:
             self.stream.write("OK")
-            if not result.wasPerfect():
-                self.stream.write("(okSkips=%d)" % len(result.okSkips))
+        if skipped:
+            infos.append("skipped=%d" % skipped)
+        if expectedFails:
+            infos.append("expected failures=%d" % expectedFails)
+        if unexpectedSuccesses:
+            infos.append("unexpected successes=%d" % unexpectedSuccesses)
+        if infos:
+            self.stream.writeln(" (%s)" % (", ".join(infos),))
+        else:
             self.stream.write("\n")
+
         return result
 
 class OSGTestSuite(unittest.TestSuite):
@@ -503,11 +514,11 @@ class OSGTestSuite(unittest.TestSuite):
     An extended version of unittest.TestSuite that passes arbitrary keyword args
     onto the test cases
     """
-    def run(self, result, **kwargs):
+    def run(self, result):
         for test in self._tests:
             if result.shouldStop:
                 break
-            test(result, **kwargs)
+            test(result)
         return result
 
 class OSGTestLoader(unittest.TestLoader):
