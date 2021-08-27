@@ -503,11 +503,11 @@ class OSGTestSuite(unittest.TestSuite):
     An extended version of unittest.TestSuite that passes arbitrary keyword args
     onto the test cases
     """
-    def run(self, result, **kwargs):
+    def run(self, result):
         for test in self._tests:
             if result.shouldStop:
                 break
-            test(result, **kwargs)
+            test(result)
         return result
 
 class OSGTestLoader(unittest.TestLoader):
