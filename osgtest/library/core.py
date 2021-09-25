@@ -573,8 +573,8 @@ def __run_command(command, use_test_user, a_input, a_stdout, a_stderr, log_outpu
         if type(timeout_signal) == str:
             timeout_signal = getattr(signal, 'SIG' + timeout_signal.upper())
 
-    p = subprocess.Popen(command, stdin=stdin, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT, shell=shell,
+    p = subprocess.Popen(command, stdin=stdin, stdout=a_stdout,
+                         stderr=a_stderr, shell=shell,
                          preexec_fn=preexec_fn)
 
     if timeout is not None:
