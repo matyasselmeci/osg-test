@@ -51,7 +51,7 @@ class TestFetchCrl(osgunittest.OSGTestCase):
         status, stdout, stderr = core.system(command)
         fail = core.diagnose('Run %s in /etc' % 'fetch-crl', command, status, stdout, stderr)
         if status == 1:
-            self.assertTrue(output_is_acceptable(stdout), fail)
+            self.assertTrue(output_is_acceptable(stdout + "\n" + stderr), fail)
         else:
             self.assertEquals(status, 0, fail)
         count = len(glob.glob(os.path.join('/etc/grid-security/certificates', '*.r[0-9]')))
@@ -68,7 +68,7 @@ class TestFetchCrl(osgunittest.OSGTestCase):
         status, stdout, stderr = core.system(command)
         fail = core.diagnose('Run fetch-crl in temp dir', command, status, stdout, stderr)
         if status == 1:
-            self.assertTrue(output_is_acceptable(stdout), fail)
+            self.assertTrue(output_is_acceptable(stdout + "\n" + stderr), fail)
         else:
             self.assertEquals(status, 0, fail)
         count = len(glob.glob(os.path.join(temp_crl_dir, '*.r[0-9]')))

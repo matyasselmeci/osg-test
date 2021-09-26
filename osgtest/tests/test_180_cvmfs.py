@@ -57,6 +57,6 @@ class TestStartCvmfs(osgunittest.OSGTestCase):
         setup_automount()
         setup_cvmfs()
 
-        stdout, _, fail = core.check_system(('service', 'autofs', 'restart'), 'Start cvmfs server')
-        self.assertFalse("FAILED" in stdout, fail)
+        stdout, stderr, fail = core.check_system(('service', 'autofs', 'restart'), 'Start cvmfs server')
+        self.assertNotIn("FAILED", stdout + "\n" + stderr, fail)
         core.state['cvmfs.started-server'] = True

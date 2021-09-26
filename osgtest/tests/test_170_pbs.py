@@ -74,8 +74,8 @@ set server acl_host_enable = True
         if not os.path.exists(core.config['torque.pbs-serverdb']):
             command = ('/usr/sbin/pbs_server -d /var/lib/torque -t create -f && '
                        'sleep 10 && /usr/bin/qterm')
-            stdout, _, fail = core.check_system(command, 'create initial pbs serverdb config', shell=True)
-            self.assertTrue(stdout.find('error') == -1, fail)
+            stdout, stderr, fail = core.check_system(command, 'create initial pbs serverdb config', shell=True)
+            self.assertNotIn("error", stdout + "\n" + stderr, fail)
 
         # This gets wiped if we write it before the initial 'service pbs_server create'
         # However, this file needs to be in place before the service is started so we
@@ -110,9 +110,10 @@ set server acl_host_enable = True
         start_time = time.time()
         while (time.time() - start_time) < 600:
             command = ('/usr/bin/qnodes', '-s', core.get_hostname())
-            stdout, _, fail = core.check_system(command, 'Get pbs node info')
-            self.assertTrue(stdout.find('error') == -1, fail)
-            if stdout.find('state = free'):
+            stdout, stderr, fail = core.check_system(command, 'Get pbs node info')
+            output = stdout + "\n" + stderr
+            self.assertNotIn("error", output, fail)
+            if "state = free" in output:
                 core.state['torque.nodes-up'] = True
                 break
         if not core.state['torque.nodes-up']:

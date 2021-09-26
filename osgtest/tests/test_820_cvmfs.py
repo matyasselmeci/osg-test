@@ -17,8 +17,8 @@ class TestStopCvmfs(osgunittest.OSGTestCase):
         except KeyError:
             pass  # tempdir was never created
 
-        stdout, _, fail = core.check_system(('cvmfs_config', 'umount'), 'Stop Cvmfs server')
-        self.assertTrue(stdout.find('FAILED') == -1, fail)
+        stdout, stderr, fail = core.check_system(('cvmfs_config', 'umount'), 'Stop Cvmfs server')
+        self.assertNotIn("FAILED", stdout + "\n" + stderr, fail)
 
         files.restore("/etc/fuse.conf", "cvmfs")
         files.restore("/etc/auto.master", "cvmfs")
