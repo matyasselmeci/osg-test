@@ -44,7 +44,7 @@ def retry_command(command, timeout_seconds=3600):
             break
 
         # Deal with failures that can be retried
-        elif yum_failure_can_be_retried(stdout):
+        elif yum_failure_can_be_retried(stdout + "\n" + stderr):
             time.sleep(30)
             clean()
             core.log_message("Retrying command")
