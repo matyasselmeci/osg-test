@@ -51,9 +51,9 @@ class TestVOMS(osgunittest.OSGTestCase):
 
         command = ('voms-proxy-init', '-voms', core.config['voms.vo'] + ':/Bogus')
         password = core.options.password + '\n'
-        status, stdout, _ = core.system(command, True, password)
+        status, _, stderr = core.system(command, True, password)
         self.assertNotEqual(status, 0, 'voms-proxy-init fails on bad group')
-        self.assert_('Unable to satisfy' in stdout, 'voms-proxy-init failure message')
+        self.assert_('Unable to satisfy' in stderr, 'voms-proxy-init failure message')
 
     # Copy of 03 above, to make sure failure did not affect good proxy
     def test_05_voms_proxy_info(self):
