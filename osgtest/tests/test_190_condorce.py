@@ -13,7 +13,14 @@ class TestStartCondorCE(osgunittest.OSGTestCase):
 
         core.config['condor-ce.condor-cfg'] = '/etc/condor/config.d/99-osgtest.condor.conf'
         contents = """SCHEDD_INTERVAL=1
-QUEUE_SUPER_USER_MAY_IMPERSONATE = .*"""
+QUEUE_SUPER_USER_MAY_IMPERSONATE = .*
+
+ENABLE_KERNEL_TUNING = FALSE
+COLLECTOR_MAX_FILE_DESCRIPTORS = 1024
+SHARED_PORT_MAX_FILE_DESCRIPTORS = 1024
+SCHEDD_MAX_FILE_DESCRIPTORS = 1024
+MAX_FILE_DESCRIPTORS = 1024
+"""
 
         files.write(core.config['condor-ce.condor-cfg'],
                     contents,
