@@ -70,7 +70,7 @@ QUEUE_SUPER_USER_MAY_IMPERSONATE = .*"""
         core.config['condor-ce.condor-ce-cfg'] = '/etc/condor-ce/config.d/99-osgtest.condor-ce.conf'
 
         condor_contents = """GRIDMAP = /etc/grid-security/grid-mapfile
-ALL_DEBUG=D_CAT D_ALWAYS:2
+ALL_DEBUG=D_CAT D_ALWAYS:2 D_NETWORK D_SECURITY
 JOB_ROUTER_DEFAULTS = $(JOB_ROUTER_DEFAULTS) [set_default_maxMemory = 128;]
 JOB_ROUTER_ENTRIES = \\
    [ \\
