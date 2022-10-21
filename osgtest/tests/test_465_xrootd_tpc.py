@@ -31,6 +31,7 @@ class TestXrootdTPC(osgunittest.OSGTestCase):
     public_copied_file = f"{xrootd.ROOTDIR}/{{public_subdir}}/tpc_public_copied_file.txt"
     public_copied_file2 = f"{xrootd.ROOTDIR}/{{public_subdir}}/tpc_public_copied_file2.txt"
     user_copied_file = f"{xrootd.ROOTDIR}/{{user_subdir}}/tpc_user_copied_file.txt"
+    user_denied_file = f"{xrootd.ROOTDIR}/{{user.subdir}}/tpc_user_denied_file.txt"
 
     def tpc1_url_from_path(self, path):
         if path.startswith(xrootd.ROOTDIR):
@@ -124,7 +125,7 @@ class TestXrootdTPC(osgunittest.OSGTestCase):
 
     @xrootd_tpc_record_failure
     def test_03_initiate_tpc_denied(self):
-        dest_path = TestXrootdTPC.user_copied_file
+        dest_path = TestXrootdTPC.user_denied_file
         files.remove(dest_path)
 
         command = self.copy_command(TestXrootdTPC.tpc1_source_url,
