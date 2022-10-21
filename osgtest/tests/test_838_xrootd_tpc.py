@@ -14,7 +14,8 @@ class TestStopXrootdTPC(osgunittest.OSGTestCase):
 
     def test_01_dump_logs_if_failures(self):
         self.skip_ok_unless(core.state['xrootd.tpc.had-failures'], "no failures")
-        self.skip_ok_unless(core.options.manualrun, "only dumping logs on a manual run (osg-test -m)")
+        # TODO XXX disable this once we're done debugging
+        # self.skip_ok_unless(core.options.manualrun, "only dumping logs on a manual run (osg-test -m)")
         xrootd.dump_log(500, "third-party-copy-1")
         xrootd.dump_log(500, "third-party-copy-2")
 
