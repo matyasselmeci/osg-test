@@ -15,6 +15,8 @@ xrootd.trace all
 xrd.trace all -sched
 ofs.trace all
 http.trace all
+macaroons.trace all
+tpc.trace all
 
 all.adminpath /var/spool/xrootd
 all.pidpath /var/run/xrootd
