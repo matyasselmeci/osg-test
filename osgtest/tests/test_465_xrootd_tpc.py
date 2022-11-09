@@ -46,7 +46,8 @@ class TestXrootdTPC(osgunittest.OSGTestCase):
     def copy_command(self, source_url, dest_url, source_token=None, dest_token=None):
         command = ["curl", "-A", "Test", "-vk", "-X", "COPY",
                    "-H", f"Source: {source_url}",
-                   "-H", "Overwrite: T",
+                   #"-H", "Overwrite: T",
+                    "-H", "Overwrite: F",
         ]
         # We're contacting the destination which means we need to auth to the
         # destination and give it the token to auth to the source 
