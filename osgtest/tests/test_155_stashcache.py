@@ -8,6 +8,7 @@ from osgtest.library import core
 from osgtest.library import files
 from osgtest.library.osgunittest import OSGTestCase
 from osgtest.library import service
+from osgtest.library import xrootd
 
 
 # These will end up as environment variables in the xrootd configs
@@ -136,6 +137,9 @@ def setstate(key, val):
 
 def start_xrootd(instance):
     svc = "xrootd@%s" % instance
+    config_dump = xrootd.cconfig(instance)
+    core.log_message(f"cconfig dump for xrootd instance '{instance}'\n" +
+                     "\n".join(config_dump))
     if not service.is_running(svc):
         try:
             service.check_start(svc, min_up_time=3)
