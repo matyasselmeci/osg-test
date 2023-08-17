@@ -147,6 +147,9 @@ class OSGTestCase(unittest.TestCase):
         """Assert that no member of the list matches the regex (using re.search())"""
         self.assertFalse(any(re.search(regex, line) for line in test_list), message)
 
+    def defaultTestResult(self) -> "OSGTestResult":
+        return OSGTestResult()
+
     # This is mostly a copy of the method from unittest in python 2.4.
     # There is some code here to test if the 'result' object accepts 'skips',
     # since the original TestResult object does not. If it does not, an
@@ -173,34 +176,24 @@ class OSGTestCase(unittest.TestCase):
             result = self.defaultTestResult()
         result.startTest(self)
         testMethod = getattr(self, self._testMethodName)
-        canSkip = hasattr(result, 'addOkSkip') and hasattr(result, 'addBadSkip')
         try:
             try:
                 self.setUp()
             # These are new. setUp() is a perfectly valid place to skip tests.
             except OkSkipException:
-                if canSkip:
-                    result.addOkSkip(self, sys.exc_info())
-                else:
-                    pass
+                result.addOkSkip(self, sys.exc_info())
                 return
             except ExcludedException:
-                if canSkip:
-                    result.addExclude(self, sys.exc_info())
-                else:
-                    pass
+                result.addExclude(self, sys.exc_info())
                 return
             except BadSkipException:
-                if canSkip:
-                    result.addBadSkip(self, sys.exc_info())
-                else:
-                    result.addError(self, sys.exc_info())
+                result.addBadSkip(self, sys.exc_info())
                 if exit_on_fail:
                     result.stop()
                 return
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 result.addError(self, sys.exc_info())
                 if exit_on_fail:
                     result.stop()
@@ -215,20 +208,11 @@ class OSGTestCase(unittest.TestCase):
             # another name for AssertionError, and OkSkipException and
             # BadSkipException inherit from AssertionError.
             except OkSkipException:
-                if canSkip:
-                    result.addOkSkip(self, sys.exc_info())
-                else:
-                    pass
+                result.addOkSkip(self, sys.exc_info())
             except ExcludedException:
-                if canSkip:
-                    result.addExclude(self, sys.exc_info())
-                else:
-                    pass
+                result.addExclude(self, sys.exc_info())
             except BadSkipException:
-                if canSkip:
-                    result.addBadSkip(self, sys.exc_info())
-                else:
-                    result.addFailure(self, sys.exc_info())
+                result.addBadSkip(self, sys.exc_info())
                 if exit_on_fail:
                     result.stop()
             except TimeoutException:
@@ -239,18 +223,14 @@ class OSGTestCase(unittest.TestCase):
                 result.addFailure(self, sys.exc_info())
                 if exit_on_fail:
                     result.stop()
-            except KeyboardInterrupt:
-                raise
-            except:
+            except Exception:
                 result.addError(self, sys.exc_info())
                 if exit_on_fail:
                     result.stop()
 
             try:
                 self.tearDown()
-            except KeyboardInterrupt:
-                raise
-            except:
+            except Exception:
                 result.addError(self, sys.exc_info())
                 if exit_on_fail:
                     result.stop()
@@ -450,7 +430,7 @@ class OSGTextTestResult(OSGTestResult):
 class OSGTextTestRunner(unittest.TextTestRunner):
     """Extended unittest.TextTestRunner with support for okSkips / badSkips / timeouts."""
 
-    def _makeResult(self):
+    def _makeResult(self) -> "OSGTextTestResult":
         return OSGTextTestResult(self.stream, self.descriptions, self.verbosity)
 
     def run(self, test, **kwargs):
