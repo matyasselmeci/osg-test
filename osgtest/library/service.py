@@ -31,10 +31,7 @@ def start(service_name, force=False):
         core.skip('service ' + service_name + ' already running (flagged as started)')
         return
 
-    if core.el_release() >= 7:
-        command = ('systemctl', 'start', service_name)
-    else:
-        command = ('service', service_name, 'start')
+    command = ('systemctl', 'start', service_name)
     core.check_system(command, 'Start ' + service_name + ' service')
     core.state[service_name + '.started-service'] = True
 
@@ -69,10 +66,7 @@ def stop(service_name, force=False):
         core.skip('did not start service ' + service_name)
         return
 
-    if core.el_release() >= 7:
-        command = ('systemctl', 'stop', service_name)
-    else:
-        command = ('service', service_name, 'stop')
+    command = ('systemctl', 'stop', service_name)
     core.check_system(command, 'Stop ' + service_name + ' service')
     core.state[service_name + '.started-service'] = False
 
@@ -88,10 +82,7 @@ def status(service_name):
     """
     Return exit code of the 'service_name' init script or systemd status check
     """
-    if core.el_release() >= 7:
-        command = ('systemctl', 'is-active', service_name)
-    else:
-        command = ('service', service_name, 'status')
+    command = ('systemctl', 'is-active', service_name)
 
     status_rc, _, _ = core.system(command, quiet=True)
     return status_rc
