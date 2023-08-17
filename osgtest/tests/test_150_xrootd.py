@@ -6,7 +6,6 @@ import osgtest.library.service as service
 import osgtest.library.osgunittest as osgunittest
 import osgtest.library.voms as voms
 import osgtest.library.xrootd as xrootd
-import shlex
 import shutil
 import time
 
