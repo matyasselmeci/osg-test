@@ -152,7 +152,7 @@ class TestStartXrootd(osgunittest.OSGTestCase):
                          backup=False)
 
     def test_07_check_cconfig(self):
-        xrootd_config = xrootd.cconfig("standalone", raw=False, quiet=False)
+        xrootd_config = xrootd.cconfig("standalone", quiet=False)
         self.assertRegexInList(xrootd_config,
                                rf"^[ ]*oss\.localroot[ ]+{xrootd.ROOTDIR}[ ]*$",
                                f"'oss.localroot {xrootd.ROOTDIR}' not found")
