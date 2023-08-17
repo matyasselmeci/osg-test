@@ -223,7 +223,7 @@ def remove(path, force=False):
 
     If the force argument is True, then this function will remove non-empty directories.
     """
-    if re.search(r'[\]*?]', path):
+    if re.search(r'[]*?]', path):
         for glob_path in glob.glob(path):
             if os.path.isfile(glob_path):
                 os.unlink(glob_path)
