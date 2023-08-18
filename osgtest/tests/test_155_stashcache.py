@@ -134,12 +134,12 @@ def setstate(key, val):
 
 def start_xrootd(instance):
     svc = "xrootd@%s" % instance
+    config_dump = xrootd.cconfig(instance)
+    core.log_message(f"cconfig dump for xrootd instance '{instance}'\n" +
+                     "\n".join(config_dump))
     if not service.is_running(svc):
         try:
             service.check_start(svc, min_up_time=3)
-            config_dump = xrootd.cconfig(instance)
-            core.log_message(f"cconfig dump for xrootd instance '{instance}'\n" +
-                             "\n".join(config_dump))
         except Exception:
             core.system("tail -n 75 /var/log/xrootd/%s/xrootd.log" % instance, shell=True)
             raise
