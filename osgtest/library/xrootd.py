@@ -9,6 +9,11 @@ ROOTDIR = f"/tmp/xrootd-osgtest-{os.getpid()}"
 
 
 def cconfig_raw(instance, executable="xrootd", quiet=True) -> str:
+    """Return the a config dump of an xrootd instance using cconfig, as a
+    single string.
+    """
+    # Using shell=True because cconfig prints output into stderr and there's a
+    # bug in core.__run_command()'s stderr handling.
     ret, output, _ = core.system(f"cconfig -x {executable} -n {instance} -c /etc/xrootd/xrootd-{instance}.cfg 2>&1", shell=True, quiet=quiet)
 
     if ret != 0:
@@ -17,10 +22,9 @@ def cconfig_raw(instance, executable="xrootd", quiet=True) -> str:
 
 
 def cconfig(instance, executable="xrootd", quiet=True) -> List[str]:
-    """Return the a config dump of an xrootd instance using cconfig"""
-    # Using shell=True because cconfig prints output into stderr and there's a
-    # bug in core.__run_command()'s stderr handling.
-
+    """Return the a config dump of an xrootd instance using cconfig, as a processed
+    list with non-config lines removed.
+    """
     raw_output = cconfig_raw(instance, executable, quiet)
     if not raw_output:
         return []
