@@ -217,6 +217,7 @@ class TestStartStashCache(OSGTestCase):
         ]:
             files.write(path, contents, owner=NAMESPACE, chmod=0o644)
             filelist.append(path)
+            core.log_message(f"***** Wrote file {path} with the following contents:\n{contents}\n***** END *****")
 
         # Install certs.  Normally done in the xrootd tests but they conflict with the StashCache tests
         # (both use the same config dir)
