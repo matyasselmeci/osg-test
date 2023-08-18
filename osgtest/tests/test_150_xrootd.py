@@ -188,10 +188,10 @@ class TestStartXrootd(osgunittest.OSGTestCase):
         if core.options.manualrun:
             files.preserve_and_remove(xrootd.logfile("standalone"), "xrootd")
         try:
-            service.check_start(core.config['xrootd_service'], min_up_time=5)
             config_dump = xrootd.cconfig("standalone")
             core.log_message(f"cconfig dump for xrootd instance 'standalone'\n" +
                              "\n".join(config_dump))
+            service.check_start(core.config['xrootd_service'], min_up_time=5)
         except Exception:
             xrootd.dump_log(125, "standalone")
             raise
