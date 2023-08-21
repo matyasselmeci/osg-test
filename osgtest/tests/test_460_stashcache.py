@@ -79,6 +79,9 @@ class TestStashCache(OSGTestCase):
         except IOError as e:
             self.fail("Unable to download from cache via http: %s" % e)
         self.assertEqualVerbose(result, contents, "downloaded file mismatch")
+
+    def test_03a_http_fetch_from_cache_is_cached(self):
+        name, contents = self.testfiles[1]
         self.assertCached(name, contents)
 
     def test_04_xroot_fetch_from_cache(self):
@@ -89,6 +92,9 @@ class TestStashCache(OSGTestCase):
                                "root://localhost:%d/%s" % (getcfg("CacheXrootPort"), path),
                                "-"], "Checking xroot copy from cache")
         self.assertEqualVerbose(core.to_str(result), contents, "downloaded file mismatch")
+
+    def test_04a_xroot_fetch_from_cache_is_cached(self):
+        name, contents = self.testfiles[2]
         self.assertCached(name, contents)
 
     def test_05_stashcp(self):
@@ -112,6 +118,9 @@ class TestStashCache(OSGTestCase):
                                   "Checking stashcp")
             result = tf.read()
         self.assertEqualVerbose(core.to_str(result), contents, "stashcp'ed file mismatch")
+
+    def test_05a_stashcp_is_cached(self):
+        name, contents = self.testfiles[3]
         self.assertCached(name, contents)
 
     def test_06_xrootd_fetch_from_origin_auth(self):
