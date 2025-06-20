@@ -144,7 +144,8 @@ def start_xrootd(instance):
         try:
             service.check_start(svc, min_up_time=3)
         except Exception:
-            core.system("tail -n 75 /var/log/xrootd/%s/xrootd.log" % instance, shell=True)
+            core.system(["tail", "-n", "75", f"/var/log/xrootd/{instance}/xrootd.log"])
+            core.system(["systemctl", "status", svc])
             raise
 
 
@@ -157,6 +158,11 @@ class TestStartStashCache(OSGTestCase):
                                       by_dependency=True)
         if core.rpm_is_installed("pelican"):
             self.skip_ok("pelican is installed, skipping stashcache tests")
+
+    def test_00_enable_coredumps(self):
+        size = 100_000_000  # 100 MB, let's not make it too big
+        files.append("/etc/systemd/system.conf", f"DefaultLimitCORE={size}", backup=False)
+        core.system(["sysctl", "kernel.core_pattern=/var/log/core_%e_%p_%h_%t"])
 
     def test_01_configure(self):
         caching_plugin_cfg_path = "/etc/xrootd/config.d/40-stash-cache-plugin.cfg"
