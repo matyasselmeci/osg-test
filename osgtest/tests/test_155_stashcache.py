@@ -142,7 +142,7 @@ def start_xrootd(instance):
                      "\n".join(config_dump))
     if not service.is_running(svc):
         try:
-            service.check_start(svc, min_up_time=3)
+            service.check_start(svc, min_up_time=10)
         except Exception:
             core.system(["tail", "-n", "75", f"/var/log/xrootd/{instance}/xrootd.log"])
             core.system(["systemctl", "status", svc])
