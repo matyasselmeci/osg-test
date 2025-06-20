@@ -96,26 +96,7 @@ class TestStartXrootdTPC(osgunittest.OSGTestCase):
         if core.options.manualrun:
             files.preserve_and_remove(xrootd.logfile("third-party-copy-1"), owner="xrootd")
             files.preserve_and_remove(xrootd.logfile("third-party-copy-2"), owner="xrootd")
-
-        self.start_with_dump(
-            instance="third-party-copy-1",
-            service_name=core.config["xrootd_tpc_service_1"],
-            flag="xrootd.started-http-server-1",
-        )
-        self.start_with_dump(
-            instance="third-party-copy-2",
-            service_name=core.config["xrootd_tpc_service_2"],
-            flag="xrootd.started-http-server-2",
-        )
-
-    @staticmethod
-    def start_with_dump(instance, service_name, flag):
-        try:
-            config_dump = xrootd.cconfig(instance)
-            core.log_message(f"cconfig dump for xrootd instance '{instance}'\n" +
-                             "\n".join(config_dump))
-            service.check_start(service_name, min_up_time=5)
-            core.state[flag] = True
-        except Exception:
-            xrootd.dump_log(125, instance)
-            raise
+        service.check_start(core.config['xrootd_tpc_service_1'], min_up_time = 5)
+        service.check_start(core.config['xrootd_tpc_service_2'], min_up_time = 5)
+        core.state['xrootd.started-http-server-1'] = True
+        core.state['xrootd.started-http-server-2'] = True
