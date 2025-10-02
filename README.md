@@ -1,8 +1,6 @@
 osg-test
 ========
 
-[![Build Status](https://travis-ci.org/opensciencegrid/osg-test.svg?branch=master)](https://travis-ci.org/opensciencegrid/osg-test)
-
 - [Motivation](#motivation)
 - [Running the OSG Automated Tests](#running-the-osg-automated-tests)
 - [osg-test usage](#osg-test-usage)

@@ -1,4 +1,3 @@
-test_040_java
 test_050_mysqld
 test_055_osg_ca_manage
 test_060_fetch_crl
@@ -33,5 +32,4 @@ test_890_condor
 test_910_pbs
 test_940_munge
 test_950_mysqld
-test_970_java
 test_980_htvault

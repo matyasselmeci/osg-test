@@ -10,12 +10,11 @@ class TestInstall(osgunittest.OSGTestCase):
     def test_01_yum_repositories(self):
         pre = ('rpm', '--verify', '--nomd5', '--nosize', '--nomtime')
         core.check_system(pre + ('epel-release',), 'Verify epel-release')
-        # If osg-release isn't installed, try osg-release-itb
-        try:
-            core.check_system(pre + ('osg-release',), 'Verify osg-release')
-        except AssertionError:
-            core.check_system(pre + ('osg-release-itb',), 'Verify osg-release + osg-release-itb')
-        
+        osg_release_rpm = core.osg_release_rpm()
+        self.assertIsNotNone(osg_release_rpm, 'No osg-release RPM installed')
+        osg_release_rpm: str  # let the type checker know what's up
+        core.check_system(pre + (osg_release_rpm,), f'Verify osg-release ({osg_release_rpm})')
+
         original_release = core.osg_release().version
         if '.' not in original_release:  # 23, 24, etc.
             original_release = f'{original_release}-main'
@@ -70,21 +69,23 @@ class TestInstall(osgunittest.OSGTestCase):
 
         self.skip_bad_unless(core.state['install.success'], 'Install did not succeed')
 
-        command = ['rpm', '-e', '--nodeps', 'osg-release']
-        core.check_system(command, 'Erase osg-release')
-
         update_release = core.options.updaterelease
         self.assertTrue(re.match(r'\d+[.]?\d+$', update_release), "Unrecognized updaterelease format")
 
-        # Example URLs
-        # https://repo.opensciencegrid.org/osg/3.6/osg-3.6-el7-release-latest.rpm
-        # https://repo.opensciencegrid.org/osg/23-main/osg-23-main-el8-release-latest.rpm
         if '.' not in update_release:  # 23, 24, etc.
             update_release = f'{update_release}-main'
-        rpm_url = 'https://repo.opensciencegrid.org/osg/' + update_release + '/osg-' + \
-            update_release + '-el' + str(core.el_release()) + '-release-latest.rpm'
-        command = ['yum', 'install', '-y', rpm_url]
-        core.check_system(command, 'Install new version of osg-release')
+        if core.is_x86_64_v2():
+            rpm_name = f"osg-{update_release}-el{core.el_release()}-release-latest.x86_64_v2.rpm"
+        else:
+            rpm_name = f"osg-{update_release}-el{core.el_release()}-release-latest.rpm"
+        rpm_url = f"https://repo.osg-htc.org/osg/{update_release}/{rpm_name}"
+        if core.el_release() == 8:
+            # https://bugzilla.redhat.com/show_bug.cgi?id=2036434
+            core.check_system(["rpm", "-e", "--nodeps", core.osg_release_rpm()], "Remove old osg-release")
+            core.check_system(["yum", "install", "-y", rpm_url], "Install new version of osg-release")
+        else:
+            command = ['yum', '-y', 'swap', core.osg_release_rpm(), rpm_url]
+            core.check_system(command, 'Install new version of osg-release')
 
         core.config['yum.clean_repos'] = ['osg'] + core.options.updaterepos
         yum.clean(*core.config['yum.clean_repos'])

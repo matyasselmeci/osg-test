@@ -1,17 +1,12 @@
 """Support and convenience functions for tests."""
-from __future__ import print_function
-
 import contextlib
-import errno
+import functools
 import os
 import os.path
 import pwd
 import re
 import rpm
-try:
-    from rpmUtils.miscutils import stringToVersion
-except ImportError:
-    from osgtest.vendor.miscutils import stringToVersion
+from osgtest.vendor.miscutils import stringToVersion
 import shutil
 import stat
 import subprocess
@@ -21,10 +16,8 @@ import time
 import traceback
 import socket
 import signal
-try:
-    from shlex import quote as shell_quote
-except ImportError:
-    from pipes import quote as shell_quote
+from shlex import quote as shell_quote
+from typing import Any, Dict, List, Optional, Union
 
 from osgtest.library import osgunittest
 
@@ -36,7 +29,7 @@ from osgtest.library import osgunittest
 # for the test run.  Someday, we may even load this configuration from a file,
 # or something like that.  For now, test modules should only add new entries to
 # this dictionary, neither modifying nor deleting existing ones.
-config = {}
+config: Dict[str, Any] = {}
 config['user.home'] = '/var/home'
 config['system.mapfile'] = '/etc/grid-security/grid-mapfile'
 
@@ -46,7 +39,7 @@ config['system.mapfile'] = '/etc/grid-security/grid-mapfile'
 # prefix each key with "COMP.", where "COMP" is a short lowercase string that
 # indicates which component the test belongs to, or "general." for truly cross-
 # cutting objects.
-state = {'proxy.valid': False}
+state: Dict[str, Any] = {'proxy.valid': False}
 
 class DummyClass(object):
     """A class that ignores all function calls; useful for testing"""
@@ -57,13 +50,12 @@ class DummyClass(object):
 
 # Global command-line options.  This should be merged into the config object,
 # eventually.
-options = None
+options: Any = None
 
 # "Internal" attributes for use within this module.
-_log = None
-_log_filename = None
+_log = sys.stderr
+_log_filename = ""
 _last_log_had_output = True
-_el_release = None
 
 SLURM_PACKAGES = ['slurm',
                   'slurm-slurmd',
@@ -133,7 +125,6 @@ def init_dummy():
     global options, _log
 
     options = DummyClass()
-    _log = DummyClass()
 
 
 def start_log():
@@ -199,16 +190,17 @@ def dump_log(outfile=None):
 
 def remove_log():
     """Removes the detailed log file; not for general use."""
-    os.remove(_log_filename)
+    if _log_filename:
+        os.remove(_log_filename)
+
 
 def get_stat(filename):
-    '''Return stat for 'filename', None if the file does not exist'''
+    """Return stat for 'filename', None if the file does not exist"""
     try:
         return os.stat(filename)
-    except OSError as exc:
-        if exc.errno == errno.ENOENT:
-            return None
-        raise
+    except FileNotFoundError:
+        return None
+
 
 def monitor_file(filename, old_stat, sentinel, timeout):
     """Monitors a file for the sentinel regex
@@ -273,7 +265,7 @@ def monitor_file(filename, old_stat, sentinel, timeout):
 
 
 def trim_output(output):
-    # type: (str|list|None) -> list
+    # type: (Union[str, List, None]) -> List
     if output is None:
         return []
     elif isinstance(output, str):
@@ -375,8 +367,9 @@ def dependency_installed_rpms(a_dependency):
 def installed_rpms():
     """Returns the list of all installed packages."""
     command = ('rpm', '--query', '--all', '--queryformat', r'%{NAME}\n')
-    status, stdout, stderr = system(command, log_output=False, quiet=True)
-    return set(re.split(r'\s+', stdout.strip()))
+    proc = subprocess.run(command, stdout=subprocess.PIPE, encoding='latin-1')
+    return proc.stdout.splitlines()
+
 
 def rpm_regexp_is_installed(a_regexp):
     """Returns whether any RPM matches the provided regexp."""
@@ -646,26 +639,43 @@ def wait_for_file(filename, timeout):
 
     return False
 
-def el_release():
+
+@functools.lru_cache(1)
+def el_release() -> int:
     """Return the major version of the Enterprise Linux release the system is
     running. SL/RHEL/CentOS 6.x will return 6; SL/RHEL/CentOS 7.x will return
     7.
 
     """
-    global _el_release
-    if not _el_release:
+    try:
+        release_file = open("/etc/redhat-release", 'r')
         try:
-            release_file = open("/etc/redhat-release", 'r')
-            try:
-                release_text = release_file.read()
-            finally:
-                release_file.close()
-            match = re.search(r"release (\d)", release_text)
-            _el_release = int(match.group(1))
-        except (EnvironmentError, TypeError, ValueError) as e:
-            _log.write("Couldn't determine redhat release: " + str(e) + "\n")
-            sys.exit(1)
-    return _el_release
+            release_text = release_file.read()
+        finally:
+            release_file.close()
+        match = re.search(r"release (\d)", release_text)
+        return int(match.group(1))
+    except (EnvironmentError, TypeError, ValueError) as e:
+        _log.write("Couldn't determine redhat release: " + str(e) + "\n")
+        sys.exit(1)
+
+
+def osg_release_rpm() -> Optional[str]:
+    """
+    Return the name of the RPM providing osg-release, or None if no such
+    RPM is found.
+    """
+    try:
+        return dependency_installed_rpms('osg-release')[0]
+    except IndexError:
+        return None
+
+
+@functools.lru_cache(1)
+def is_x86_64_v2() -> bool:
+    """True if the OS (not necessarily the CPU) is Alma 10 x86_64_v2"""
+    proc = subprocess.run(['rpm', '-E', '%{x86_64_v2}'], stdout=subprocess.PIPE)
+    return proc.stdout.strip() == b'1'
 
 
 def osg_release(update_state=False):
@@ -674,10 +684,9 @@ def osg_release(update_state=False):
     """
     if not update_state and 'general.osg_release_ver' in state:
         return state['general.osg_release_ver']
-    try:
-        release = PackageVersion('osg-release')
-    except OSError:
-        release = PackageVersion('osg-release-itb')
+    release_rpm = osg_release_rpm()
+    assert release_rpm, "No osg-release RPM installed"
+    release = PackageVersion(release_rpm)
     state['general.osg_release_ver'] = release
     return release
 
