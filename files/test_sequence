@@ -5,6 +5,7 @@ test_070_munge
 test_080_certs
 test_090_jobs
 test_100_condor
+test_140_podman
 test_150_xrootd
 test_158_xrootd_tpc
 test_170_pbs
@@ -30,6 +31,7 @@ test_838_xrootd_tpc
 test_840_xrootd
 test_890_condor
 test_910_pbs
+test_930_podman
 test_940_munge
 test_950_mysqld
 test_980_htvault
