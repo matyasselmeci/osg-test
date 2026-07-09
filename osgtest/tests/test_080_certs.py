@@ -29,6 +29,14 @@ class TestCert(osgunittest.OSGTestCase):
             test_ca.voms(VONAME)
             core.state['certs.hostcert_created'] = True
 
+    def test_02a_print_host_cert(self):
+        hostcert = core.config.get('certs.hostcert', '')
+        self.skip_ok_unless(hostcert and os.path.exists(hostcert), "Host cert does not exist")
+        core.check_system(
+            ['openssl', 'x509', '-in', core.config['certs.hostcert'], '-text', '-noout'],
+            message="Printing host cert info with openssl"
+        )
+
     def test_03_generate_user_cert(self):
         core.state['general.user_cert_created'] = False
         core.state['system.wrote_mapfile'] = False
