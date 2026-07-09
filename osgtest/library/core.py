@@ -697,7 +697,7 @@ def get_hostname():
     get the hostname
     """
     try:
-        return socket.gethostbyaddr(socket.gethostname())[0]
+        return os.getenv("OSG_FQDN") or socket.gethostbyaddr(socket.gethostname())[0]
     except socket.error:
         return None
 
