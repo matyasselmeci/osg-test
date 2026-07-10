@@ -15,6 +15,8 @@ all.adminpath /var/spool/xrootd
 all.pidpath /var/run/xrootd
 set resourcename = VDTTEST
 set rootdir = {xrootd.ROOTDIR}
+tpc.allow local
+tpc.allow private
 continue /etc/xrootd/config.d/
 """
 
